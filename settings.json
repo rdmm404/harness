@@ -10,6 +10,7 @@
 		"npm:pi-rtk-rewrite",
 		"npm:pi-observational-memory",
 		"npm:pi-web-access",
-		"git:github.com/rdmm404/pi-sync"
+		"git:github.com/rdmm404/pi-sync",
+		"npm:pi-open-here"
 	]
 }
