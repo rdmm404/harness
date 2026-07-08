@@ -318,7 +318,17 @@ export default function (pi: ExtensionAPI) {
           const sessionName = ctx.sessionManager.getSessionName();
           const sessionPart = sessionName ? theme.fg("dim", ` • ${sessionName}`) : "";
 
-          const pwdLine = truncateToWidth(cwdPart + branchPart + sessionPart, width, theme.fg("dim", "..."));
+          const extensionStatuses = footerData.getExtensionStatuses();
+          const piSyncStatus = sanitizeStatusText(
+            (extensionStatuses?.get("pisync") as string | undefined) ?? "",
+          );
+          const line1Left = cwdPart + branchPart + sessionPart;
+          const line1Right = piSyncStatus ? theme.fg("dim", `pi-sync ${piSyncStatus}`) : "";
+          const line1LeftWidth = visibleWidth(line1Left);
+          const line1RightWidth = visibleWidth(line1Right);
+          const pwdLine = line1Right && line1LeftWidth + 2 + line1RightWidth <= width
+            ? line1Left + " ".repeat(width - line1LeftWidth - line1RightWidth) + line1Right
+            : truncateToWidth(line1Left, width, theme.fg("dim", "..."));
 
           // Line 2: left and right
           const usage = ctx.getContextUsage();
@@ -332,7 +342,6 @@ export default function (pi: ExtensionAPI) {
           const usingSub = ctx.model ? ctx.modelRegistry.isUsingOAuth(ctx.model) : false;
           const costStr = `$${cost.toFixed(2)}${usingSub ? " (sub)" : ""}`;
 
-          const extensionStatuses = footerData.getExtensionStatuses();
           const codexUsageStatus = sanitizeStatusText(
             (extensionStatuses?.get("codex-usage") as string | undefined) ?? "",
           );
@@ -386,7 +395,7 @@ export default function (pi: ExtensionAPI) {
           // The Codex usage status is consumed inline with tokens/cost above.
           if (extensionStatuses && extensionStatuses.size > 0) {
             const sortedStatuses = Array.from(extensionStatuses.entries())
-              .filter((entry) => entry[0] !== "codex-usage")
+              .filter((entry) => entry[0] !== "codex-usage" && entry[0] !== "pisync")
               .sort((entryA, entryB) => (entryA[0] as string).localeCompare(entryB[0] as string))
               .map((entry) => sanitizeStatusText(entry[1] as string));
             if (sortedStatuses.length > 0) {
