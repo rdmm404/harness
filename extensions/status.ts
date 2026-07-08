@@ -319,9 +319,13 @@ export default function (pi: ExtensionAPI) {
           const sessionPart = sessionName ? theme.fg("dim", ` • ${sessionName}`) : "";
 
           const extensionStatuses = footerData.getExtensionStatuses();
-          const piSyncStatus = sanitizeStatusText(
+          const piSyncActivityStatus = sanitizeStatusText(
+            (extensionStatuses?.get("pisync-activity") as string | undefined) ?? "",
+          );
+          const piSyncDriftStatus = sanitizeStatusText(
             (extensionStatuses?.get("pisync") as string | undefined) ?? "",
           );
+          const piSyncStatus = piSyncActivityStatus || piSyncDriftStatus;
           const line1Left = cwdPart + branchPart + sessionPart;
           const line1Right = piSyncStatus ? theme.fg("dim", `pi-sync ${piSyncStatus}`) : "";
           const line1LeftWidth = visibleWidth(line1Left);
@@ -395,7 +399,12 @@ export default function (pi: ExtensionAPI) {
           // The Codex usage status is consumed inline with tokens/cost above.
           if (extensionStatuses && extensionStatuses.size > 0) {
             const sortedStatuses = Array.from(extensionStatuses.entries())
-              .filter((entry) => entry[0] !== "codex-usage" && entry[0] !== "pisync")
+              .filter(
+                (entry) =>
+                  entry[0] !== "codex-usage" &&
+                  entry[0] !== "pisync" &&
+                  entry[0] !== "pisync-activity",
+              )
               .sort((entryA, entryB) => (entryA[0] as string).localeCompare(entryB[0] as string))
               .map((entry) => sanitizeStatusText(entry[1] as string));
             if (sortedStatuses.length > 0) {
