@@ -5,8 +5,8 @@
 	],
 	"defaultProvider": "openai-codex",
 	"defaultModel": "gpt-5.5",
-	"defaultThinkingLevel": "low",
 	"hideThinkingBlock": false,
+	"defaultThinkingLevel": "low",
 	"packages": [
 		"npm:pi-context-usage",
 		"npm:pi-rtk-rewrite",

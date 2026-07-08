@@ -1,5 +1,6 @@
 [
 	"AGENTS.md",
+	"extensions/codex-usage.ts",
 	"extensions/status.ts",
 	"settings.json",
 	"themes/dracula.json"

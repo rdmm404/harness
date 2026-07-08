@@ -332,7 +332,15 @@ export default function (pi: ExtensionAPI) {
           const usingSub = ctx.model ? ctx.modelRegistry.isUsingOAuth(ctx.model) : false;
           const costStr = `$${cost.toFixed(2)}${usingSub ? " (sub)" : ""}`;
 
+          const extensionStatuses = footerData.getExtensionStatuses();
+          const codexUsageStatus = sanitizeStatusText(
+            (extensionStatuses?.get("codex-usage") as string | undefined) ?? "",
+          );
+
           let leftStr = `${ctxStr}/${windowStr}  ${costStr}`;
+          if (codexUsageStatus) {
+            leftStr += `  ${codexUsageStatus}`;
+          }
           if (perf.lastTokS !== undefined && perf.lastTokS > 0) {
             leftStr += `  ${perf.lastTokS.toFixed(0)} tok/s`;
           }
@@ -374,14 +382,17 @@ export default function (pi: ExtensionAPI) {
           
           const lines = [pwdLine, dimStatsLine];
 
-          // Add extension statuses on a single line, sorted by key alphabetically
-          const extensionStatuses = footerData.getExtensionStatuses();
+          // Add extension statuses on a single line, sorted by key alphabetically.
+          // The Codex usage status is consumed inline with tokens/cost above.
           if (extensionStatuses && extensionStatuses.size > 0) {
             const sortedStatuses = Array.from(extensionStatuses.entries())
+              .filter((entry) => entry[0] !== "codex-usage")
               .sort((entryA, entryB) => (entryA[0] as string).localeCompare(entryB[0] as string))
               .map((entry) => sanitizeStatusText(entry[1] as string));
-            const statusLine = sortedStatuses.join(" ");
-            lines.push(truncateToWidth(statusLine, width, theme.fg("dim", "...")));
+            if (sortedStatuses.length > 0) {
+              const statusLine = sortedStatuses.join(" ");
+              lines.push(truncateToWidth(statusLine, width, theme.fg("dim", "...")));
+            }
           }
 
           return lines;
