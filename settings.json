@@ -3,13 +3,13 @@
 	"enabledModels": [
 		"openai-codex/gpt-5.5"
 	],
-	"hideThinkingBlock": true,
+	"hideThinkingBlock": false,
 	"packages": [
 		"npm:pi-context-usage",
 		"npm:pi-rtk-rewrite",
-		"npm:pi-observational-memory",
 		"npm:pi-web-access",
 		"git:git@github.com:rdmm404/pi-sync",
-		"npm:pi-open-here"
+		"npm:pi-open-here",
+		"npm:pi-blackhole"
 	]
 }
