@@ -16,6 +16,8 @@
 	"extensions/pi-rules/test/parser.test.ts",
 	"extensions/pi-rules/tsconfig.json",
 	"extensions/status.ts",
+	"pi-blackhole/pi-blackhole-config.json",
+	"pi-rules.config.ts",
 	"settings.json",
 	"themes/dracula.json"
 ]
