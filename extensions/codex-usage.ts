@@ -849,11 +849,31 @@ function formatCodexUsageStatusline(report: CodexUsageReport, model?: CodexUsage
   const snapshot = selectUsageSnapshot(report, activeUsageLimitId(model));
   if (!snapshot) return "usage unavailable";
 
+  const windows = classifyUsageWindows(snapshot);
   const parts: string[] = [];
-  if (snapshot.primary) parts.push(`5h:${formatRemainingPercent(snapshot.primary)}`);
-  if (snapshot.secondary) parts.push(`wk:${formatRemainingPercent(snapshot.secondary)}`);
+  if (windows.fiveHour) parts.push(`5h:${formatRemainingPercent(windows.fiveHour)}`);
+  if (windows.weekly) parts.push(`wk:${formatRemainingPercent(windows.weekly)}`);
   if (parts.length === 0 && snapshot.credits && shouldShowCredits(snapshot.credits)) parts.push(formatCredits(snapshot.credits));
   return parts.join(" ") || "usage unavailable";
+}
+
+function classifyUsageWindows(snapshot: NormalizedRateLimitSnapshot): {
+  fiveHour?: NormalizedRateLimitWindow;
+  weekly?: NormalizedRateLimitWindow;
+} {
+  const windows = [snapshot.primary, snapshot.secondary].filter(
+    (window): window is NormalizedRateLimitWindow => window !== undefined,
+  );
+  const fiveHour = windows.find((window) => window.windowMinutes === 300);
+  const weekly = windows.find((window) => window.windowMinutes === 7 * 24 * 60);
+
+  // Older responses used primary for 5h and secondary for weekly. Preserve that
+  // fallback when the server omits window durations, while preferring durations
+  // for newer responses where the weekly window may be primary.
+  return {
+    fiveHour: fiveHour ?? (weekly ? undefined : snapshot.primary),
+    weekly: weekly ?? snapshot.secondary,
+  };
 }
 
 function formatRemainingPercent(window: NormalizedRateLimitWindow): string {
@@ -907,9 +927,10 @@ function formatCodexUsageReport(
   }
 
   lines.push("");
-  if (snapshot.primary) lines.push(formatWindowLine("5h", snapshot.primary, theme));
-  if (snapshot.secondary) lines.push(formatWindowLine("Weekly", snapshot.secondary, theme));
-  if (!snapshot.primary && !snapshot.secondary) {
+  const windows = classifyUsageWindows(snapshot);
+  if (windows.fiveHour) lines.push(formatWindowLine("5h", windows.fiveHour, theme));
+  if (windows.weekly) lines.push(formatWindowLine("Weekly", windows.weekly, theme));
+  if (!windows.fiveHour && !windows.weekly) {
     lines.push(theme.fg("warning", "Limits unavailable for this account."));
   }
   if (snapshot.credits && shouldShowCredits(snapshot.credits)) {

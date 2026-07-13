@@ -1,0 +1,28 @@
+{
+  "name": "pi-rules",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Declarative Bash tool-call policy extension for Pi",
+  "exports": {
+    ".": "./index.ts",
+    "./api": "./api.ts"
+  },
+  "scripts": {
+    "test": "node --import tsx --test test/*.test.ts",
+    "test:functional": "node --import tsx --test test/functional/*.test.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "license": "ISC",
+  "dependencies": {
+    "jiti": "^2.6.1",
+    "unbash": "^4.0.2"
+  },
+  "devDependencies": {
+    "@earendil-works/pi-ai": "^0.80.6",
+    "@earendil-works/pi-coding-agent": "^0.80.6",
+    "@types/node": "^24.0.0",
+    "tsx": "^4.20.0",
+    "typescript": "^5.9.0"
+  }
+}

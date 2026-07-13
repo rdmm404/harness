@@ -1,8 +1,21 @@
 [
 	"AGENTS.md",
 	"extensions/codex-usage.ts",
+	"extensions/pi-rules/CONFIGURATION.md",
+	"extensions/pi-rules/DESIGN.md",
+	"extensions/pi-rules/api.ts",
+	"extensions/pi-rules/config.ts",
+	"extensions/pi-rules/index.ts",
+	"extensions/pi-rules/package-lock.json",
+	"extensions/pi-rules/package.json",
+	"extensions/pi-rules/parser.ts",
+	"extensions/pi-rules/test/config.test.ts",
+	"extensions/pi-rules/test/extension.test.ts",
+	"extensions/pi-rules/test/fixtures/deterministic-provider.ts",
+	"extensions/pi-rules/test/functional/rpc-smoke.test.ts",
+	"extensions/pi-rules/test/parser.test.ts",
+	"extensions/pi-rules/tsconfig.json",
 	"extensions/status.ts",
-	"pi-blackhole/pi-blackhole-config.json",
 	"settings.json",
 	"themes/dracula.json"
 ]
