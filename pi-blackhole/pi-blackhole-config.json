@@ -2,7 +2,8 @@
   "_notes": [
     "Auto blackhole compaction at 50% of the 372K session context.",
     "Observer uses the faster gpt-5.4-mini; reflector and dropper use gpt-5.6-luna.",
-    "Reflector and dropper fall back to gpt-5.5."
+    "Reflector and dropper fall back to gpt-5.5.",
+    "Commit message generation test change."
   ],
   "compaction": "auto",
   "compactionEngine": "blackhole",
