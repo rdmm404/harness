@@ -138,6 +138,73 @@ function sanitizeStatusText(text: string): string {
     .trim();
 }
 
+interface FooterLineLayoutOptions {
+  left: string;
+  statuses: string[];
+  right: string;
+  width: number;
+  separator: string;
+  ellipsis: string;
+  minPadding?: number;
+}
+
+/**
+ * Keep built-in stats and the model visible, then use the remaining bottom-left
+ * space for extension statuses. Statuses are the first thing truncated or
+ * omitted as the terminal narrows.
+ */
+export function layoutFooterLine({
+  left,
+  statuses,
+  right,
+  width,
+  separator,
+  ellipsis,
+  minPadding = 2,
+}: FooterLineLayoutOptions): string {
+  if (width <= 0) return "";
+
+  const renderedLeft = truncateToWidth(left, width, ellipsis);
+  const leftWidth = visibleWidth(renderedLeft);
+  if (leftWidth >= width || !right) {
+    if (leftWidth >= width || statuses.length === 0) return renderedLeft;
+
+    const statusBudget = width - leftWidth - visibleWidth(separator);
+    if (statusBudget <= 0) return renderedLeft;
+    const renderedStatuses = truncateToWidth(statuses.join(" "), statusBudget, ellipsis);
+    return renderedLeft + separator + renderedStatuses;
+  }
+
+  const rightWidth = visibleWidth(right);
+  const fullRightFits = leftWidth + minPadding + rightWidth <= width;
+
+  // Extension statuses are lower priority than both built-in portions. Only
+  // add them when the complete right side fits; otherwise preserve the old
+  // behavior of truncating the model into whatever space remains.
+  if (!fullRightFits) {
+    const availableForRight = width - leftWidth - minPadding;
+    if (availableForRight <= 0) return renderedLeft;
+
+    const renderedRight = truncateToWidth(right, availableForRight, "");
+    const padding = " ".repeat(Math.max(0, width - leftWidth - visibleWidth(renderedRight)));
+    return renderedLeft + padding + renderedRight;
+  }
+
+  let renderedStatuses = "";
+  if (statuses.length > 0) {
+    const statusBudget = width - leftWidth - minPadding - rightWidth - visibleWidth(separator);
+    if (statusBudget > 0) {
+      const statusText = truncateToWidth(statuses.join(" "), statusBudget, ellipsis);
+      if (visibleWidth(statusText) > 0) renderedStatuses = separator + statusText;
+    }
+  }
+
+  const padding = " ".repeat(
+    Math.max(0, width - leftWidth - visibleWidth(renderedStatuses) - rightWidth),
+  );
+  return renderedLeft + renderedStatuses + padding + right;
+}
+
 function estimateContextTokens(pi: ExtensionAPI, ctx: ExtensionContext): number {
   let systemPrompt = "";
   try {
@@ -344,13 +411,15 @@ export default function (pi: ExtensionAPI) {
           const usageSummary = sumUsage(ctx.sessionManager.getBranch());
           const cost = usageSummary.cost;
           const usingSub = ctx.model ? ctx.modelRegistry.isUsingOAuth(ctx.model) : false;
-          const costStr = `$${cost.toFixed(2)}${usingSub ? " (sub)" : ""}`;
 
           const codexUsageStatus = sanitizeStatusText(
             (extensionStatuses?.get("codex-usage") as string | undefined) ?? "",
           );
 
-          let leftStr = `${ctxStr}/${windowStr}  ${costStr}`;
+          let leftStr = `${ctxStr}/${windowStr}`;
+          if (!usingSub) {
+            leftStr += `  $${cost.toFixed(2)}`;
+          }
           if (codexUsageStatus) {
             leftStr += `  ${codexUsageStatus}`;
           }
@@ -362,58 +431,38 @@ export default function (pi: ExtensionAPI) {
           let rightStr = "no-model";
           if (model) {
             const modelId = model.id;
+            const provider = model.provider;
             const reasoning = model.reasoning;
             const thinking = pi.getThinkingLevel();
             rightStr = reasoning
-              ? `${modelId} • ${thinking === "off" ? "thinking off" : thinking}`
-              : modelId;
+              ? `${modelId} • ${thinking === "off" ? "thinking off" : thinking} • ${provider}`
+              : `${modelId} • ${provider}`;
           }
 
-          // Position/padding for Line 2
-          const leftWidth = visibleWidth(leftStr);
-          const rightWidth = visibleWidth(rightStr);
-          const minPadding = 2;
-          const totalNeeded = leftWidth + minPadding + rightWidth;
+          // Other extensions share the bottom-left area with the built-in
+          // stats. Keep their own styling, but clearly separate them from the
+          // built-in portion. Special statuses consumed above are excluded.
+          const sortedStatuses = Array.from(extensionStatuses.entries())
+            .filter(
+              ([key]) =>
+                key !== "codex-usage" &&
+                key !== "pisync" &&
+                key !== "pisync-activity",
+            )
+            .sort(([keyA], [keyB]) => keyA.localeCompare(keyB))
+            .map(([, text]) => sanitizeStatusText(text))
+            .filter(Boolean);
 
-          let statsLine: string;
-          if (totalNeeded <= width) {
-            const padding = " ".repeat(width - leftWidth - rightWidth);
-            statsLine = leftStr + padding + rightStr;
-          } else {
-            const availableForRight = width - leftWidth - minPadding;
-            if (availableForRight > 0) {
-              const truncatedRight = truncateToWidth(rightStr, availableForRight, "");
-              const truncatedRightWidth = visibleWidth(truncatedRight);
-              const padding = " ".repeat(Math.max(0, width - leftWidth - truncatedRightWidth));
-              statsLine = leftStr + padding + truncatedRight;
-            } else {
-              statsLine = leftStr;
-            }
-          }
+          const statsLine = layoutFooterLine({
+            left: theme.fg("dim", leftStr),
+            statuses: sortedStatuses,
+            right: theme.fg("dim", rightStr),
+            width,
+            separator: theme.fg("dim", " │ "),
+            ellipsis: theme.fg("dim", "..."),
+          });
 
-          const dimStatsLine = theme.fg("dim", statsLine);
-          
-          const lines = [pwdLine, dimStatsLine];
-
-          // Add extension statuses on a single line, sorted by key alphabetically.
-          // The Codex usage status is consumed inline with tokens/cost above.
-          if (extensionStatuses && extensionStatuses.size > 0) {
-            const sortedStatuses = Array.from(extensionStatuses.entries())
-              .filter(
-                (entry) =>
-                  entry[0] !== "codex-usage" &&
-                  entry[0] !== "pisync" &&
-                  entry[0] !== "pisync-activity",
-              )
-              .sort((entryA, entryB) => (entryA[0] as string).localeCompare(entryB[0] as string))
-              .map((entry) => sanitizeStatusText(entry[1] as string));
-            if (sortedStatuses.length > 0) {
-              const statusLine = sortedStatuses.join(" ");
-              lines.push(truncateToWidth(statusLine, width, theme.fg("dim", "...")));
-            }
-          }
-
-          return lines;
+          return [pwdLine, statsLine];
         },
       };
     });
