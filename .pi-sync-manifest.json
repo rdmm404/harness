@@ -1,6 +1,10 @@
 [
 	"AGENTS.md",
+	"agents/explorer.md",
+	"agents/general-purpose.md",
+	"agents/oracle.md",
 	"extensions/codex-usage.ts",
+	"extensions/herdr-agent-state.ts",
 	"extensions/pi-rules/CONFIGURATION.md",
 	"extensions/pi-rules/DESIGN.md",
 	"extensions/pi-rules/api.ts",
