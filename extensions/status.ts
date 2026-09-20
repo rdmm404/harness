@@ -27,6 +27,25 @@ function formatCwd(cwd: string, home: string | undefined): string {
   return relativeToHome === "" ? "~" : `~${sep}${relativeToHome}`;
 }
 
+function cacheHitRate(usage: {
+  input?: number;
+  cacheRead?: number;
+  cacheWrite?: number;
+} | undefined): number | undefined {
+  if (!usage) return undefined;
+
+  const promptTokens = (usage.input ?? 0) + (usage.cacheRead ?? 0) + (usage.cacheWrite ?? 0);
+  return promptTokens > 0 ? ((usage.cacheRead ?? 0) / promptTokens) * 100 : undefined;
+}
+
+type CacheRateColor = "muted" | "warning" | "error";
+
+function cacheRateColor(rate: number): CacheRateColor {
+  if (rate >= 80) return "muted";
+  if (rate >= 50) return "warning";
+  return "error";
+}
+
 interface UsageSummary {
   input: number;
   output: number;
@@ -45,6 +64,7 @@ interface UsageSummary {
     cost: number;
   } | null;
   latestCacheHitRate: number | undefined;
+  sessionCacheHitRate: number | undefined;
 }
 
 function sumUsage(branch: any[]): UsageSummary {
@@ -93,10 +113,14 @@ function sumUsage(branch: any[]): UsageSummary {
         cost: cCost,
       };
 
-      const latestPromptTokens = inVal + cRead + cWrite;
-      latestCacheHitRate = latestPromptTokens > 0 ? (cRead / latestPromptTokens) * 100 : undefined;
+      const requestCacheHitRate = cacheHitRate({ input: inVal, cacheRead: cRead, cacheWrite: cWrite });
+      if (requestCacheHitRate !== undefined) {
+        latestCacheHitRate = requestCacheHitRate;
+      }
     }
   }
+
+  const sessionCacheHitRate = cacheHitRate({ input, cacheRead, cacheWrite });
 
   return {
     input,
@@ -110,6 +134,7 @@ function sumUsage(branch: any[]): UsageSummary {
     costCacheWrite,
     lastUsage,
     latestCacheHitRate,
+    sessionCacheHitRate,
   };
 }
 
@@ -136,6 +161,24 @@ function sanitizeStatusText(text: string): string {
     .replace(/[\r\n\t]/g, " ")
     .replace(/ +/g, " ")
     .trim();
+}
+
+function stylePercentValues(
+  text: string,
+  style: (color: "dim" | "muted", value: string) => string,
+): string {
+  const percentPattern = /\d+(?:\.\d+)?%/g;
+  let result = "";
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+
+  while ((match = percentPattern.exec(text)) !== null) {
+    result += style("dim", text.slice(lastIndex, match.index));
+    result += style("muted", match[0]);
+    lastIndex = match.index + match[0].length;
+  }
+
+  return result + style("dim", text.slice(lastIndex));
 }
 
 interface FooterLineLayoutOptions {
@@ -345,8 +388,13 @@ async function refreshPr(
 }
 
 export default function (pi: ExtensionAPI) {
+  // Keep the last observed request ratio visible when an aborted request is not
+  // persisted as a finalized assistant message.
+  let lastRequestCacheHitRate: number | undefined;
+
   // Footer: install on every session start (startup/reload/new/resume/fork).
   pi.on("session_start", (_e, ctx) => {
+    lastRequestCacheHitRate = sumUsage(ctx.sessionManager.getBranch()).latestCacheHitRate;
     if (!ctx.hasUI) return; // no-op in print/json modes
     ctx.ui.setFooter((tui, theme, footerData) => {
       tuiRef = tui;
@@ -416,15 +464,32 @@ export default function (pi: ExtensionAPI) {
             (extensionStatuses?.get("codex-usage") as string | undefined) ?? "",
           );
 
-          let leftStr = `${ctxStr}/${windowStr}`;
+          const contextTokenPart = estimated
+            ? theme.fg("dim", "~") + theme.fg("muted", formatTokens(value))
+            : theme.fg("muted", ctxStr);
+          let leftStr = contextTokenPart + theme.fg("dim", "/") + theme.fg("muted", windowStr);
+          const latestCacheHitRate = usageSummary.latestCacheHitRate ?? lastRequestCacheHitRate;
+          if (latestCacheHitRate !== undefined) {
+            leftStr += theme.fg("dim", "  C:");
+            leftStr += theme.fg(cacheRateColor(latestCacheHitRate), `${latestCacheHitRate.toFixed(0)}%`);
+          }
+          if (usageSummary.sessionCacheHitRate !== undefined) {
+            const sessionRate = usageSummary.sessionCacheHitRate;
+            leftStr += theme.fg("dim", " Σ:");
+            leftStr += theme.fg(cacheRateColor(sessionRate), `${sessionRate.toFixed(0)}%`);
+          }
           if (!usingSub) {
-            leftStr += `  $${cost.toFixed(2)}`;
+            leftStr += theme.fg("dim", "  $");
+            leftStr += theme.fg("muted", cost.toFixed(2));
           }
           if (codexUsageStatus) {
-            leftStr += `  ${codexUsageStatus}`;
+            leftStr += theme.fg("dim", "  ");
+            leftStr += stylePercentValues(codexUsageStatus, (color, value) => theme.fg(color, value));
           }
           if (perf.lastTokS !== undefined && perf.lastTokS > 0) {
-            leftStr += `  ${perf.lastTokS.toFixed(0)} tok/s`;
+            leftStr += theme.fg("dim", "  ");
+            leftStr += theme.fg("muted", perf.lastTokS.toFixed(0));
+            leftStr += theme.fg("dim", " tok/s");
           }
 
           const model = ctx.model;
@@ -454,7 +519,7 @@ export default function (pi: ExtensionAPI) {
             .filter(Boolean);
 
           const statsLine = layoutFooterLine({
-            left: theme.fg("dim", leftStr),
+            left: leftStr,
             statuses: sortedStatuses,
             right: theme.fg("dim", rightStr),
             width,
@@ -485,6 +550,11 @@ export default function (pi: ExtensionAPI) {
 
   pi.on("message_update", async (event, _ctx) => {
     if (event.message.role !== "assistant") return;
+
+    const observedCacheHitRate = cacheHitRate(event.message.usage);
+    if (observedCacheHitRate !== undefined) {
+      lastRequestCacheHitRate = observedCacheHitRate;
+    }
 
     // Record first token (thinking or text delta)
     const assistantEvent = event.assistantMessageEvent;
@@ -524,6 +594,12 @@ export default function (pi: ExtensionAPI) {
 
   pi.on("message_end", async (event, _ctx) => {
     if (event.message.role !== "assistant") return;
+
+    const observedCacheHitRate = cacheHitRate(event.message.usage);
+    if (observedCacheHitRate !== undefined) {
+      lastRequestCacheHitRate = observedCacheHitRate;
+    }
+
     const now = Date.now();
     const elapsedMs = now - perf.startMs;
     perf.lastElapsedMs = elapsedMs;
@@ -654,7 +730,7 @@ export default function (pi: ExtensionAPI) {
         const lastCacheHitRate = summary.latestCacheHitRate;
         if (lastCacheHitRate !== undefined) {
           const rateStr = `${lastCacheHitRate.toFixed(1)}%`;
-          const styled = lastCacheHitRate > 50 ? theme.fg("success", rateStr) : theme.fg("muted", rateStr);
+          const styled = theme.fg(cacheRateColor(lastCacheHitRate), rateStr);
           lines.push(`${theme.fg("muted", "  Cache Hit:   ")} ${styled}`);
         }
       }

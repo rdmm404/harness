@@ -1,11 +1,4 @@
 {
-	"theme": "dracula",
-	"enabledModels": [
-		"openai-codex/gpt-5.5",
-		"openai-codex/gpt-5.6-luna",
-		"openai-codex/gpt-5.6-sol",
-		"openai-codex/gpt-5.6-terra"
-	],
 	"packages": [
 		"npm:pi-context-usage",
 		"npm:pi-rtk-rewrite",
@@ -13,6 +6,12 @@
 		"git:git@github.com:rdmm404/pi-sync",
 		"npm:pi-open-here",
 		"npm:pi-blackhole"
+	],
+	"enabledModels": [
+		"openai-codex/gpt-5.6-luna",
+		"openai-codex/gpt-5.6-sol",
+		"openai-codex/gpt-5.6-terra",
+		"openai-codex/gpt-6-astra"
 	],
 	"tuiMode": "fullscreen"
 }
