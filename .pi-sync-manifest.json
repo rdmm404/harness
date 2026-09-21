@@ -1,8 +1,5 @@
 [
 	"AGENTS.md",
-	"agents/explorer.md",
-	"agents/general-purpose.md",
-	"agents/oracle.md",
 	"extensions/codex-usage.ts",
 	"extensions/herdr-agent-state.ts",
 	"extensions/pi-rules/CONFIGURATION.md",
@@ -22,6 +19,7 @@
 	"extensions/status.ts",
 	"extensions/subagent/agents.ts",
 	"extensions/subagent/index.ts",
+	"pi-blackhole/pi-blackhole-config.json",
 	"settings.json",
 	"themes/dracula.json",
 	"themes/omarchy-system.json"

@@ -1,17 +1,19 @@
 {
+	"theme": "dracula",
+	"enabledModels": [
+		"openai-codex/gpt-5.6-luna",
+		"openai-codex/gpt-5.6-sol",
+		"openai-codex/gpt-5.6-terra",
+		"openai-codex/gpt-6-astra"
+	],
 	"packages": [
 		"npm:pi-context-usage",
 		"npm:pi-rtk-rewrite",
 		"npm:pi-web-access",
 		"git:git@github.com:rdmm404/pi-sync",
 		"npm:pi-open-here",
-		"npm:pi-blackhole"
-	],
-	"enabledModels": [
-		"openai-codex/gpt-5.6-luna",
-		"openai-codex/gpt-5.6-sol",
-		"openai-codex/gpt-5.6-terra",
-		"openai-codex/gpt-6-astra"
+		"npm:pi-blackhole",
+		"npm:@plannotator/pi-extension"
 	],
 	"tuiMode": "fullscreen"
 }
