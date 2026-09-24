@@ -7,11 +7,13 @@
   "skipForProviders": [],
   "tailBehavior": "minimal",
   "retainedToolOutputMaxTokens": 20000,
+  "recallResponseMaxChars": 48000,
   "midRunCompaction": "off",
   "observeAfterTokens": 15000,
   "reflectAfterTokens": 25000,
-  "compactAfterTokens": 81000,
+  "compactAfterPreset": "default",
   "observationsPoolMaxTokens": 20000,
+  "reflectionsPoolMaxTokens": 8000,
   "fullFoldAlways": true,
   "observationsPoolTargetTokens": 10000,
   "reflectorInputMaxTokens": 80000,
@@ -22,5 +24,6 @@
   "observerPreambleMaxTokens": 0,
   "agentMaxTurns": 16,
   "memory": true,
+  "statusBar": false,
   "debugLog": false
 }
