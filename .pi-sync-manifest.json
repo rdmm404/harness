@@ -4,7 +4,7 @@
 	"extensions/herdr-agent-state.ts",
 	"extensions/herdr-title/README.md",
 	"extensions/herdr-title/index.ts",
-	"extensions/herdr-title/report.mjs",
+	"extensions/herdr-title/report.ts",
 	"extensions/herdr-title/settings.json",
 	"extensions/herdr-title/test/title.test.mjs",
 	"extensions/pi-rules/CONFIGURATION.md",

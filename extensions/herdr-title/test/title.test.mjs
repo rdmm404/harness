@@ -2,7 +2,7 @@ import assert from "node:assert/strict"
 import { test } from "node:test"
 import net from "node:net"
 import { mkdir, mkdtemp, rm } from "node:fs/promises"
-import { reportTitle } from "../report.mjs"
+import { reportTitle } from "../report.ts"
 import piPlugin from "../index.ts"
 
 test("metadata changes presentation, never lifecycle", async () => {

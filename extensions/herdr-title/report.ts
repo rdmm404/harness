@@ -1,4 +1,5 @@
 // Presentation only: Herdr's installed Pi integration owns agent state.
+// Keep this as .ts: Pi reloads TS helpers, but native .mjs imports stay cached.
 import net from "node:net"
 
 export function reportTitle(agent, title, isCurrent = () => true) {

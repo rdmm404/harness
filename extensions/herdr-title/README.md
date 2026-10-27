@@ -25,4 +25,7 @@ name changes. Herdr still owns lifecycle state and resume identity. Title
 generation also works outside Herdr; socket reporting becomes a no-op.
 
 Publish with `/pisync push`; receive with `/pisync pull`, then `/reload`.
+The socket helper deliberately uses `.ts`, not `.mjs`: Pi's extension loader
+retains native ESM helpers across reloads, so `.mjs` changes can stay stale in
+existing sessions even after `/reload`.
 Tests: `node --test extensions/herdr-title/test/title.test.mjs` (Node 24+).

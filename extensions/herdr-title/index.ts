@@ -1,5 +1,5 @@
 import { readFile } from "node:fs/promises"
-import { reportTitle } from "./report.mjs"
+import { reportTitle } from "./report.ts"
 
 export default function (pi) {
   let context
