@@ -20,7 +20,7 @@ test("metadata changes presentation, never lifecycle", async () => {
   try {
     assert.equal(await reportTitle("pi", "Fix\nparser"), true)
     assert.equal(request.method, "pane.report_metadata")
-    assert.deepEqual(request.params.tokens, { title: "Fix parser", kind: "Pi" })
+    assert.deepEqual(request.params.tokens, { title: "Fix parser", kind: "π" })
     assert.equal(request.params.applies_to_source, "herdr:pi")
     assert.equal(request.params.state, undefined)
     assert.equal(await reportTitle("pi", ""), true)

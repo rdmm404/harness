@@ -27,7 +27,7 @@ export function reportTitle(agent, title, isCurrent = () => true) {
           agent: "pi",
           applies_to_source: "herdr:pi",
           ...(text ? { title: text } : { clear_title: true }),
-          tokens: { title: text || "Pi", kind: "Pi" },
+          tokens: { title: text || "Pi", kind: "π" },
           ttl_ms: 60000,
         },
       }) + "\n")
